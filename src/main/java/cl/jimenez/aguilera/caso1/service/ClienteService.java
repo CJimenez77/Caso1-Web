@@ -25,12 +25,31 @@ public class ClienteService {
 
     @Transactional(readOnly = true)
     public List<Cliente> listarActivos() {
-        return clienteRepository.findAllByActivoTrue();
+        return clienteRepository.findAllByActivoTrueOrderByNombreAsc();
     }
 
     @Transactional(readOnly = true)
     public Optional<Cliente> obtenerPorId(Long id) {
         return clienteRepository.findById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Cliente> obtenerPorRut(String rut) {
+        return clienteRepository.findByRut(rut);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Cliente> buscarPorRutOId(String termino) {
+        if (termino == null || termino.trim().isEmpty()) {
+            return Optional.empty();
+        }
+        String limpio = termino.trim();
+        Long idNumerico = null;
+        try {
+            idNumerico = Long.parseLong(limpio.replace("C-", "").replace("c-", "").trim());
+        } catch (NumberFormatException ignored) {
+        }
+        return clienteRepository.buscarPorRutOId(limpio, idNumerico);
     }
 
     public Cliente guardar(Cliente cliente) {
