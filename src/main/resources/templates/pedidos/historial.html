@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historial de pedidos - StockPedidos</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/navegacion :: barra('historial')}"></div>
+
+<main class="contenedor-principal">
+    <div class="miga-pan">Pedidos / Historial por cliente</div>
+    <div class="cabecera-seccion">
+        <h1 class="titulo-pagina">Historial de pedidos</h1>
+    </div>
+
+    <form th:action="@{/pedidos/historial}" method="get" style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+        <input type="text"
+               name="rut"
+               th:value="${rut}"
+               class="campo-busqueda"
+               style="max-width: 320px;"
+               placeholder="76.543.210-K">
+        <button type="submit" class="boton boton-primario">Buscar</button>
+        <span style="font-size: 0.8125rem; color: var(--color-texto-secundario);">Busca por ID de cliente o RUT</span>
+    </form>
+
+    <div th:if="${cliente != null}" style="display: grid; grid-template-columns: 280px 1fr; gap: 2rem; align-items: start;">
+        <div class="ficha-cliente-card">
+            <div class="subtitulo-bloque">CLIENTE</div>
+            <h2 class="cliente-nombre" th:text="${cliente.nombre}">Comercial Los Aromos Ltda.</h2>
+
+            <div class="detalle-par">
+                <span style="color: var(--color-texto-secundario);">RUT</span>
+                <strong th:text="${cliente.rut}">76.543.210-K</strong>
+            </div>
+            <div class="detalle-par">
+                <span style="color: var(--color-texto-secundario);">ID Cliente</span>
+                <span th:text="'C-00' + ${cliente.id}">C-0087</span>
+            </div>
+            <div class="detalle-par">
+                <span style="color: var(--color-texto-secundario);">Correo</span>
+                <span th:text="${cliente.correo}" style="word-break: break-all;">compras@losaromos.cl</span>
+            </div>
+            <div class="detalle-par">
+                <span style="color: var(--color-texto-secundario);">Teléfono</span>
+                <span th:text="${cliente.telefono}">+56 9 1234 5678</span>
+            </div>
+            <div class="detalle-par">
+                <span style="color: var(--color-texto-secundario);">Pedidos</span>
+                <strong th:text="${totalPedidos}">5</strong>
+            </div>
+        </div>
+
+        <div>
+            <div class="pestanas-historial">
+                <a th:href="@{/pedidos/historial(rut=${rut}, tab='todos')}"
+                   th:class="${tab == null or tab == 'todos'} ? 'pestana-item activa' : 'pestana-item'">
+                    Todos (<span th:text="${conteoTodos}">5</span>)
+                </a>
+                <a th:href="@{/pedidos/historial(rut=${rut}, tab='pendiente')}"
+                   th:class="${tab == 'pendiente'} ? 'pestana-item activa' : 'pestana-item'">
+                    Pendiente (<span th:text="${conteoPendiente}">1</span>)
+                </a>
+                <a th:href="@{/pedidos/historial(rut=${rut}, tab='completado')}"
+                   th:class="${tab == 'completado'} ? 'pestana-item activa' : 'pestana-item'">
+                    Completado (<span th:text="${conteoCompletado}">2</span>)
+                </a>
+                <a th:href="@{/pedidos/historial(rut=${rut}, tab='otros')}"
+                   th:class="${tab == 'otros'} ? 'pestana-item activa' : 'pestana-item'">
+                    Otros (<span th:text="${conteoOtros}">2</span>)
+                </a>
+            </div>
+
+            <div class="tabla-contenedor">
+                <table class="tabla-datos">
+                    <thead>
+                    <tr>
+                        <th>ID PEDIDO</th>
+                        <th>FECHA</th>
+                        <th>ÍTEMS</th>
+                        <th>TOTAL</th>
+                        <th>ESTADO</th>
+                        <th>ACCIONES</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="ped : ${pedidos}">
+                        <td style="font-weight: 600;" th:text="${ped.numeroPedido}">#1024</td>
+                        <td th:text="${#temporals.format(ped.fecha, 'dd-MM-yyyy')}">09-10-2026</td>
+                        <td th:text="${ped.items.size()}">3</td>
+                        <td style="font-weight: 600;" th:text="'$' + ${#numbers.formatDecimal(ped.total, 1, 'POINT', 0, 'POINT')}">$303.900</td>
+                        <td>
+                            <span th:if="${ped.estado.name() == 'PENDIENTE'}" class="insignia insignia-pendiente">
+                                <span class="insignia-punto"></span>PENDIENTE
+                            </span>
+                            <span th:if="${ped.estado.name() == 'COMPLETADO'}" class="insignia insignia-completado">
+                                <span class="insignia-punto"></span>COMPLETADO
+                            </span>
+                            <span th:if="${ped.estado.name() == 'ENVIADO'}" class="insignia insignia-enviado">
+                                <span class="insignia-punto"></span>ENVIADO
+                            </span>
+                            <span th:if="${ped.estado.name() == 'CANCELADO'}" class="insignia insignia-cancelado">
+                                <span class="insignia-punto"></span>CANCELADO
+                            </span>
+                        </td>
+                        <td>
+                            <button type="button" class="boton-enlace" th:data-id="${ped.id}" onclick="verDetallePedido(this.getAttribute('data-id'))">
+                                Ver detalle
+                            </button>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(pedidos)}">
+                        <td colspan="6" style="text-align: center; color: var(--color-texto-secundario); padding: 2rem;">
+                            No hay pedidos en esta categoría.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${cliente == null}" style="text-align: center; padding: 4rem; background: var(--color-superficie); border: 1px solid var(--color-borde); border-radius: var(--radio-md);">
+        <p style="font-size: 1.1rem; color: var(--color-texto-secundario);">No se encontró ningún cliente con el RUT o identificador ingresado.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--color-texto-secundario);">Pruebe buscando con el RUT: <strong>76.543.210-K</strong></p>
+    </div>
+</main>
+
+<div id="modal-detalle-pedido" class="modal-fondo" style="display: none;">
+    <div class="modal-caja" style="max-width: 650px;">
+        <h2 id="detalle-titulo-pedido" class="titulo-modal">Detalle del Pedido</h2>
+        <div id="detalle-info-general" style="display: flex; justify-content: space-between; margin-bottom: 1.25rem; font-size: 0.875rem; color: var(--color-texto-secundario); border-bottom: 1px solid var(--color-borde); padding-bottom: 0.75rem;">
+            <span id="detalle-fecha-pedido"></span>
+            <span id="detalle-estado-badge"></span>
+        </div>
+
+        <div class="tabla-contenedor" style="margin-bottom: 1.25rem; max-height: 250px; overflow-y: auto;">
+            <table class="tabla-datos">
+                <thead>
+                <tr>
+                    <th>PRODUCTO</th>
+                    <th style="text-align: center;">CANT.</th>
+                    <th style="text-align: right;">PRECIO</th>
+                    <th style="text-align: right;">SUBTOTAL</th>
+                </tr>
+                </thead>
+                <tbody id="detalle-cuerpo-items"></tbody>
+            </table>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div>
+                <label class="etiqueta-formulario" style="display: inline-block; margin-right: 0.5rem;">Cambiar estado:</label>
+                <select id="cambio-estado-select" class="selector-filtro" style="padding: 0.35rem 0.6rem;">
+                    <option value="PENDIENTE">PENDIENTE</option>
+                    <option value="ENVIADO">ENVIADO</option>
+                    <option value="COMPLETADO">COMPLETADO</option>
+                    <option value="CANCELADO">CANCELADO</option>
+                </select>
+                <button type="button" class="boton boton-secundario" style="padding: 0.35rem 0.75rem; margin-left: 0.5rem;" onclick="aplicarCambioEstado()">Guardar</button>
+            </div>
+            <div style="text-align: right;">
+                <span style="font-size: 0.75rem; color: var(--color-texto-secundario); text-transform: uppercase; font-weight: 700;">TOTAL</span>
+                <div id="detalle-monto-total" style="font-size: 1.5rem; font-weight: 700; color: #0f172a;">$0</div>
+            </div>
+        </div>
+
+        <div class="grupo-botones-modal">
+            <button type="button" class="boton boton-secundario" onclick="cerrarModal('modal-detalle-pedido')">Cerrar</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let pedidoActualId = null;
+
+    function cerrarModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+
+    async function verDetallePedido(id) {
+        pedidoActualId = id;
+        try {
+            const respuesta = await fetch('/api/pedidos/' + id);
+            if (!respuesta.ok) {
+                alert('No fue posible cargar el detalle del pedido');
+                return;
+            }
+            const pedido = await respuesta.json();
+            document.getElementById('detalle-titulo-pedido').innerText = 'Detalle de Pedido ' + pedido.numeroPedido;
+            document.getElementById('detalle-fecha-pedido').innerText = 'Fecha: ' + (pedido.fecha ? pedido.fecha.substring(0, 10) : '');
+            document.getElementById('detalle-monto-total').innerText = '$' + Math.round(pedido.total).toLocaleString('es-CL');
+            document.getElementById('cambio-estado-select').value = pedido.estado;
+
+            const tbody = document.getElementById('detalle-cuerpo-items');
+            tbody.innerHTML = '';
+            (pedido.items || []).forEach(it => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${it.producto ? it.producto.nombre : 'Producto #' + it.id}</td>
+                    <td style="text-align: center;">${it.cantidad}</td>
+                    <td style="text-align: right;">$${Math.round(it.precioUnitario).toLocaleString('es-CL')}</td>
+                    <td style="text-align: right; font-weight: 600;">$${Math.round(it.subtotal).toLocaleString('es-CL')}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('modal-detalle-pedido').style.display = 'flex';
+        } catch (err) {
+            alert('Error al consultar pedido: ' + err.message);
+        }
+    }
+
+    async function aplicarCambioEstado() {
+        if (!pedidoActualId) return;
+        const nuevoEstado = document.getElementById('cambio-estado-select').value;
+        try {
+            const resp = await fetch('/api/pedidos/' + pedidoActualId + '/estado', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+            if (resp.ok) {
+                window.location.reload();
+            } else {
+                const data = await resp.json();
+                alert('No se pudo actualizar el estado: ' + (data.mensaje || resp.statusText));
+            }
+        } catch (err) {
+            alert('Error al actualizar estado: ' + err.message);
+        }
+    }
+</script>
+
+</body>
+</html>

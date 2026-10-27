@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de pedido - StockPedidos</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/navegacion :: barra('nuevo-pedido')}"></div>
+
+<main class="contenedor-principal">
+    <div class="miga-pan">Pedidos / Nuevo pedido</div>
+    <div class="cabecera-seccion">
+        <h1 class="titulo-pagina">Registro de pedido</h1>
+    </div>
+
+    <div class="cuadricula-pedido">
+        <div class="panel-formulario">
+            <h2 class="subtitulo-bloque">ÍTEMS DEL PEDIDO</h2>
+
+            <div style="display: grid; grid-template-columns: 2fr 100px 110px 110px 40px; gap: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--color-borde); margin-bottom: 0.75rem; font-size: 0.75rem; font-weight: 700; color: #475569; text-transform: uppercase;">
+                <div>PRODUCTO</div>
+                <div>CANTIDAD</div>
+                <div style="text-align: right;">PRECIO UNIT.</div>
+                <div style="text-align: right;">SUBTOTAL</div>
+                <div></div>
+            </div>
+
+            <div id="contenedor-items"></div>
+
+            <button type="button" class="boton boton-secundario" style="margin-top: 1rem; border-color: var(--color-primario); color: var(--color-primario);" onclick="agregarFilaItem()">
+                + Agregar producto
+            </button>
+        </div>
+
+        <div class="panel-resumen">
+            <div class="campo-formulario" style="margin-bottom: 1.25rem;">
+                <label class="subtitulo-bloque" style="display: block; margin-bottom: 0.5rem;">CLIENTE</label>
+                <select id="selector-cliente" class="control-formulario" onchange="actualizarInfoCliente()">
+                    <option th:each="cliente : ${clientes}"
+                            th:value="${cliente.id}"
+                            th:data-rut="${cliente.rut}"
+                            th:text="${cliente.nombre}">
+                        Comercial Los Aromos Ltda.
+                    </option>
+                </select>
+                <div id="cliente-rut-display" style="font-size: 0.8125rem; color: var(--color-texto-secundario); margin-top: 0.375rem;">
+                    RUT 76.543.210-K
+                </div>
+            </div>
+
+            <div class="fila-resumen">
+                <span>Ítems</span>
+                <strong id="resumen-items-count">0</strong>
+            </div>
+            <div class="fila-resumen">
+                <span>Unidades</span>
+                <strong id="resumen-unidades-count">0</strong>
+            </div>
+
+            <div class="resumen-total">
+                <div class="etiqueta-total">TOTAL DEL PEDIDO</div>
+                <div class="monto-total" id="resumen-monto-total">$0</div>
+            </div>
+
+            <div class="grupo-botones-resumen">
+                <button type="button" id="btn-procesar-pedido" class="boton boton-primario" style="width: 100%; padding: 0.75rem;" onclick="procesarPedido()">
+                    Procesar Pedido
+                </button>
+                <a th:href="@{/productos}" class="boton boton-secundario" style="width: 100%; padding: 0.75rem; text-align: center;">
+                    Cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div id="modal-exito" class="modal-fondo" style="display: none;">
+    <div class="modal-caja">
+        <div class="icono-modal icono-exito">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+        </div>
+        <h2 id="exito-titulo" class="titulo-modal">Pedido creado en estado PENDIENTE</h2>
+        <p class="descripcion-modal">El stock de los productos fue descontado correctamente.</p>
+        <div class="grupo-botones-modal">
+            <button type="button" class="boton boton-secundario" onclick="reiniciarFormulario()">Nuevo pedido</button>
+            <a id="btn-ver-pedido" href="/pedidos/historial" class="boton boton-primario">Ver pedido</a>
+        </div>
+    </div>
+</div>
+
+<div id="modal-rechazo" class="modal-fondo" style="display: none;">
+    <div class="modal-caja">
+        <div class="icono-modal icono-rechazo">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+        </div>
+        <h2 id="rechazo-titulo" class="titulo-modal">Operación rechazada: Stock insuficiente</h2>
+        <p id="rechazo-descripcion" class="descripcion-modal"></p>
+        <div class="grupo-botones-modal">
+            <button type="button" class="boton boton-primario" onclick="cerrarModalRechazo()">Corregir pedido</button>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    const catalogoProductos = /*[[${productos}]]*/ [];
+    let itemsSeleccionados = [];
+
+    function formatearPesos(valor) {
+        return '$' + Math.round(valor).toLocaleString('es-CL');
+    }
+
+    function actualizarInfoCliente() {
+        const selector = document.getElementById('selector-cliente');
+        const opcion = selector.options[selector.selectedIndex];
+        if (opcion) {
+            const rut = opcion.getAttribute('data-rut');
+            document.getElementById('cliente-rut-display').innerText = 'RUT ' + rut;
+        }
+    }
+
+    function agregarFilaItem() {
+        const index = itemsSeleccionados.length;
+        const primerProducto = catalogoProductos.length > 0 ? catalogoProductos[0] : null;
+
+        const item = {
+            productoId: primerProducto ? primerProducto.id : null,
+            cantidad: 1,
+            precioUnitario: primerProducto ? primerProducto.precio : 0
+        };
+        itemsSeleccionados.push(item);
+        renderizarFilas();
+    }
+
+    function eliminarFilaItem(index) {
+        itemsSeleccionados.splice(index, 1);
+        renderizarFilas();
+    }
+
+    function alCambiarProducto(index, selectElement) {
+        const prodId = parseInt(selectElement.value);
+        const producto = catalogoProductos.find(p => p.id === prodId);
+        if (producto) {
+            itemsSeleccionados[index].productoId = prodId;
+            itemsSeleccionados[index].precioUnitario = producto.precio;
+        }
+        renderizarFilas();
+    }
+
+    function alCambiarCantidad(index, inputElement) {
+        let cant = parseInt(inputElement.value);
+        if (isNaN(cant) || cant < 1) {
+            cant = 1;
+            inputElement.value = 1;
+        }
+        itemsSeleccionados[index].cantidad = cant;
+        renderizarFilas();
+    }
+
+    function renderizarFilas() {
+        const contenedor = document.getElementById('contenedor-items');
+        contenedor.innerHTML = '';
+
+        let totalGeneral = 0;
+        let totalUnidades = 0;
+
+        itemsSeleccionados.forEach((item, idx) => {
+            const subtotal = item.precioUnitario * item.cantidad;
+            totalGeneral += subtotal;
+            totalUnidades += item.cantidad;
+
+            const fila = document.createElement('div');
+            fila.className = 'fila-item-pedido';
+
+            let opcionesHtml = '';
+            catalogoProductos.forEach(p => {
+                const seleccionado = p.id === item.productoId ? 'selected' : '';
+                opcionesHtml += `<option value="${p.id}" ${seleccionado}>${p.nombre}</option>`;
+            });
+
+            fila.innerHTML = `
+                <div>
+                    <select class="control-formulario" onchange="alCambiarProducto(${idx}, this)">
+                        ${opcionesHtml}
+                    </select>
+                </div>
+                <div>
+                    <input type="number" min="1" value="${item.cantidad}" class="control-formulario" style="text-align: center;" onchange="alCambiarCantidad(${idx}, this)" onkeyup="alCambiarCantidad(${idx}, this)">
+                </div>
+                <div style="text-align: right; font-weight: 500; font-size: 0.875rem;">
+                    ${formatearPesos(item.precioUnitario)}
+                </div>
+                <div style="text-align: right; font-weight: 600; font-size: 0.875rem; color: #0f172a;">
+                    ${formatearPesos(subtotal)}
+                </div>
+                <div style="text-align: center;">
+                    <button type="button" class="boton-enlace" style="color: #ef4444; font-size: 1.1rem; line-height: 1;" onclick="eliminarFilaItem(${idx})" title="Eliminar fila">✕</button>
+                </div>
+            `;
+            contenedor.appendChild(fila);
+        });
+
+        document.getElementById('resumen-items-count').innerText = itemsSeleccionados.length;
+        document.getElementById('resumen-unidades-count').innerText = totalUnidades;
+        document.getElementById('resumen-monto-total').innerText = formatearPesos(totalGeneral);
+    }
+
+    async function procesarPedido() {
+        if (itemsSeleccionados.length === 0) {
+            alert('Debe agregar al menos un producto al pedido');
+            return;
+        }
+
+        const selectorCliente = document.getElementById('selector-cliente');
+        const clienteId = parseInt(selectorCliente.value);
+        const rutCliente = selectorCliente.options[selectorCliente.selectedIndex].getAttribute('data-rut');
+
+        const payload = {
+            clienteId: clienteId,
+            observacion: 'Pedido registrado vía interfaz web',
+            items: itemsSeleccionados.map(it => ({
+                productoId: it.productoId,
+                cantidad: it.cantidad
+            }))
+        };
+
+        const btn = document.getElementById('btn-procesar-pedido');
+        btn.disabled = true;
+
+        try {
+            const respuesta = await fetch('/api/pedidos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await respuesta.json();
+
+            if (respuesta.status === 201) {
+                document.getElementById('exito-titulo').innerText = 'Pedido ' + data.numeroPedido + ' creado en estado PENDIENTE';
+                document.getElementById('btn-ver-pedido').href = '/pedidos/historial?rut=' + encodeURIComponent(rutCliente);
+                document.getElementById('modal-exito').style.display = 'flex';
+            } else if (respuesta.status === 409 || respuesta.status === 400) {
+                if (data.detalles && data.detalles.nombreProducto) {
+                    document.getElementById('rechazo-titulo').innerText = 'Operación rechazada: Stock insuficiente para ' + data.detalles.nombreProducto;
+                    document.getElementById('rechazo-descripcion').innerText = 'Solicitado: ' + data.detalles.cantidadSolicitada + ' unidades · Disponible: ' + data.detalles.stockDisponible + '. La transacción fue revertida y no se registró ningún pedido ni descuento de stock.';
+                } else {
+                    document.getElementById('rechazo-titulo').innerText = 'Operación rechazada';
+                    document.getElementById('rechazo-descripcion').innerText = data.mensaje || 'No fue posible procesar el pedido.';
+                }
+                document.getElementById('modal-rechazo').style.display = 'flex';
+            } else {
+                alert('Error al procesar el pedido: ' + (data.mensaje || respuesta.statusText));
+            }
+        } catch (err) {
+            alert('Error de conexión con el servidor: ' + err.message);
+        } finally {
+            btn.disabled = false;
+        }
+    }
+
+    function cerrarModalRechazo() {
+        document.getElementById('modal-rechazo').style.display = 'none';
+    }
+
+    function reiniciarFormulario() {
+        document.getElementById('modal-exito').style.display = 'none';
+        itemsSeleccionados = [];
+        agregarFilaItem();
+        actualizarInfoCliente();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        actualizarInfoCliente();
+        agregarFilaItem();
+    });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de productos - StockPedidos</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/navegacion :: barra('productos')}"></div>
+
+<main class="contenedor-principal">
+    <div class="miga-pan">Inventario / Productos</div>
+
+    <div class="cabecera-seccion">
+        <h1 class="titulo-pagina">Catálogo de productos</h1>
+        <button type="button" class="boton boton-primario" onclick="abrirModal('modal-nuevo-producto')">
+            Nuevo Producto
+        </button>
+    </div>
+
+    <div class="tarjetas-metricas">
+        <div class="tarjeta-metrica">
+            <span class="metrica-etiqueta">Productos registrados</span>
+            <span class="metrica-valor" th:text="${totalRegistrados}">8</span>
+        </div>
+        <div class="tarjeta-metrica">
+            <span class="metrica-etiqueta">Bajo stock mínimo</span>
+            <span class="metrica-valor alerta-baja" th:text="${totalBajoMinimo}">4</span>
+        </div>
+        <div class="tarjeta-metrica">
+            <span class="metrica-etiqueta">En estado crítico</span>
+            <span class="metrica-valor alerta-critica" th:text="${totalCritico}">2</span>
+        </div>
+    </div>
+
+    <form th:action="@{/productos}" method="get" class="barra-filtros">
+        <input type="text"
+               name="termino"
+               th:value="${termino}"
+               class="campo-busqueda"
+               placeholder="Buscar por código o nombre">
+        <select name="estado" class="selector-filtro" onchange="this.form.submit()">
+            <option value="todos" th:selected="${estado == null or estado == 'todos'}">Todos los estados</option>
+            <option value="critico" th:selected="${estado == 'critico'}">En estado crítico</option>
+            <option value="bajo_minimo" th:selected="${estado == 'bajo_minimo'}">Bajo stock mínimo</option>
+            <option value="normal" th:selected="${estado == 'normal'}">Stock normal</option>
+        </select>
+        <button type="submit" class="boton boton-secundario">Buscar</button>
+        <a th:href="@{/productos}" class="boton boton-secundario" th:if="${termino != null or (estado != null and estado != 'todos')}">Limpiar</a>
+    </form>
+
+    <div class="tabla-contenedor">
+        <table class="tabla-datos">
+            <thead>
+            <tr>
+                <th>CÓDIGO</th>
+                <th>NOMBRE</th>
+                <th>PRECIO</th>
+                <th>STOCK ACTUAL</th>
+                <th>STOCK MÍNIMO</th>
+                <th>ACCIONES</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="producto : ${productos}"
+                th:class="${producto.stockDisponible <= 5} ? 'fila-critica' : (${producto.stockDisponible <= producto.stockMinimo} ? 'fila-bajo-minimo' : '')">
+                <td th:text="${producto.codigo}">P-001</td>
+                <td th:text="${producto.nombre}">Cable HDMI 2 m</td>
+                <td th:text="'$' + ${#numbers.formatDecimal(producto.precio, 1, 'POINT', 0, 'POINT')}">$4.990</td>
+                <td>
+                    <span th:text="${producto.stockDisponible}">120</span>
+                    <span th:if="${producto.stockDisponible <= 5}" class="insignia insignia-critica">
+                        <span class="insignia-punto"></span>Crítico
+                    </span>
+                    <span th:if="${producto.stockDisponible > 5 and producto.stockDisponible <= producto.stockMinimo}"
+                          class="insignia insignia-bajo-minimo">
+                        <span class="insignia-punto"></span>Bajo mínimo
+                    </span>
+                </td>
+                <td th:text="${producto.stockMinimo}">30</td>
+                <td>
+                    <div class="acciones-celda">
+                        <button type="button"
+                                class="boton-enlace"
+                                th:data-id="${producto.id}"
+                                th:data-codigo="${producto.codigo}"
+                                th:data-nombre="${producto.nombre}"
+                                th:data-descripcion="${producto.descripcion}"
+                                th:data-precio="${producto.precio}"
+                                th:data-stock="${producto.stockDisponible}"
+                                th:data-minimo="${producto.stockMinimo}"
+                                onclick="prepararEdicion(this)">
+                            Editar
+                        </button>
+                        <button type="button"
+                                class="boton-enlace"
+                                th:data-id="${producto.id}"
+                                th:data-nombre="${producto.nombre}"
+                                th:data-stock="${producto.stockDisponible}"
+                                onclick="prepararAjuste(this)">
+                            Ajustar stock
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(productos)}">
+                <td colspan="6" style="text-align: center; color: var(--color-texto-secundario); padding: 2rem;">
+                    No se encontraron productos con los criterios seleccionados.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<div id="modal-nuevo-producto" class="modal-fondo" style="display: none;">
+    <div class="modal-caja">
+        <h2 class="titulo-modal">Registrar Nuevo Producto</h2>
+        <form th:action="@{/productos/nuevo}" method="post">
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Código / SKU</label>
+                <input type="text" name="codigo" required class="control-formulario" placeholder="Ej: P-009">
+            </div>
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Nombre del producto</label>
+                <input type="text" name="nombre" required class="control-formulario" placeholder="Nombre comercial">
+            </div>
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Descripción</label>
+                <textarea name="descripcion" rows="2" class="control-formulario" placeholder="Detalles del producto"></textarea>
+            </div>
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Precio unitario ($)</label>
+                <input type="number" step="1" min="0" name="precio" required class="control-formulario" placeholder="0">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="campo-formulario">
+                    <label class="etiqueta-formulario">Stock inicial</label>
+                    <input type="number" min="0" name="stockDisponible" required class="control-formulario" value="0">
+                </div>
+                <div class="campo-formulario">
+                    <label class="etiqueta-formulario">Stock mínimo de alerta</label>
+                    <input type="number" min="0" name="stockMinimo" required class="control-formulario" value="0">
+                </div>
+            </div>
+            <div class="grupo-botones-modal" style="margin-top: 1.5rem;">
+                <button type="button" class="boton boton-secundario" onclick="cerrarModal('modal-nuevo-producto')">Cancelar</button>
+                <button type="submit" class="boton boton-primario">Guardar Producto</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-editar-producto" class="modal-fondo" style="display: none;">
+    <div class="modal-caja">
+        <h2 class="titulo-modal">Editar Producto</h2>
+        <form id="form-editar-producto" method="post">
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Código / SKU</label>
+                <input type="text" id="editar-codigo" name="codigo" required class="control-formulario">
+            </div>
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Nombre del producto</label>
+                <input type="text" id="editar-nombre" name="nombre" required class="control-formulario">
+            </div>
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Descripción</label>
+                <textarea id="editar-descripcion" name="descripcion" rows="2" class="control-formulario"></textarea>
+            </div>
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Precio unitario ($)</label>
+                <input type="number" step="1" min="0" id="editar-precio" name="precio" required class="control-formulario">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="campo-formulario">
+                    <label class="etiqueta-formulario">Stock disponible</label>
+                    <input type="number" min="0" id="editar-stock" name="stockDisponible" required class="control-formulario">
+                </div>
+                <div class="campo-formulario">
+                    <label class="etiqueta-formulario">Stock mínimo</label>
+                    <input type="number" min="0" id="editar-minimo" name="stockMinimo" required class="control-formulario">
+                </div>
+            </div>
+            <div class="grupo-botones-modal" style="margin-top: 1.5rem;">
+                <button type="button" class="boton boton-secundario" onclick="cerrarModal('modal-editar-producto')">Cancelar</button>
+                <button type="submit" class="boton boton-primario">Actualizar Producto</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-ajustar-stock" class="modal-fondo" style="display: none;">
+    <div class="modal-caja">
+        <h2 class="titulo-modal">Ajustar Inventario</h2>
+        <p id="ajuste-nombre-producto" class="descripcion-modal" style="margin-bottom: 1rem;"></p>
+        <form id="form-ajustar-stock" method="post">
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Nuevo stock disponible</label>
+                <input type="number" min="0" id="ajuste-nuevo-stock" name="nuevoStock" required class="control-formulario">
+            </div>
+            <div class="grupo-botones-modal" style="margin-top: 1.5rem;">
+                <button type="button" class="boton boton-secundario" onclick="cerrarModal('modal-ajustar-stock')">Cancelar</button>
+                <button type="submit" class="boton boton-primario">Guardar Ajuste</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function abrirModal(id) {
+        document.getElementById(id).style.display = 'flex';
+    }
+
+    function cerrarModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+
+    function prepararEdicion(boton) {
+        const id = boton.getAttribute('data-id');
+        document.getElementById('form-editar-producto').action = '/productos/' + id + '/editar';
+        document.getElementById('editar-codigo').value = boton.getAttribute('data-codigo');
+        document.getElementById('editar-nombre').value = boton.getAttribute('data-nombre');
+        document.getElementById('editar-descripcion').value = boton.getAttribute('data-descripcion') || '';
+        document.getElementById('editar-precio').value = boton.getAttribute('data-precio');
+        document.getElementById('editar-stock').value = boton.getAttribute('data-stock');
+        document.getElementById('editar-minimo').value = boton.getAttribute('data-minimo');
+        abrirModal('modal-editar-producto');
+    }
+
+    function prepararAjuste(boton) {
+        const id = boton.getAttribute('data-id');
+        const nombre = boton.getAttribute('data-nombre');
+        const stock = boton.getAttribute('data-stock');
+        document.getElementById('form-ajustar-stock').action = '/productos/' + id + '/ajustar-stock';
+        document.getElementById('ajuste-nombre-producto').innerText = 'Producto: ' + nombre + ' (Stock actual: ' + stock + ')';
+        document.getElementById('ajuste-nuevo-stock').value = stock;
+        abrirModal('modal-ajustar-stock');
+    }
+</script>
+
+</body>
+</html>

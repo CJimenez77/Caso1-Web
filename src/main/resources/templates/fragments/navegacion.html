@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head></head>
+<body>
+<nav class="barra-navegacion" th:fragment="barra(paginaActiva)">
+    <div class="nav-izquierda">
+        <a th:href="@{/productos}" class="marca-logo">StockPedidos</a>
+        <div class="nav-enlaces">
+            <a th:href="@{/productos}"
+               th:class="${paginaActiva == 'productos'} ? 'nav-enlace activo' : 'nav-enlace'">
+                Productos
+            </a>
+            <a th:href="@{/pedidos/nuevo}"
+               th:class="${paginaActiva == 'nuevo-pedido'} ? 'nav-enlace activo' : 'nav-enlace'">
+                Nuevo pedido
+            </a>
+            <a th:href="@{/pedidos/historial}"
+               th:class="${paginaActiva == 'historial'} ? 'nav-enlace activo' : 'nav-enlace'">
+                Historial por cliente
+            </a>
+        </div>
+    </div>
+    <div class="nav-derecha">
+        <span>Bodega Central · Administrador</span>
+    </div>
+</nav>
+</body>
+</html>
