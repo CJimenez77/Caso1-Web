@@ -72,6 +72,39 @@ public class WebController {
         return "redirect:/productos";
     }
 
+    @GetMapping("/clientes")
+    public String listadoClientes(Model model) {
+        List<Cliente> clientes = clienteService.listarTodos();
+        long totalClientes = clientes.size();
+        long totalActivos = clientes.stream().filter(c -> "ACTIVO".equalsIgnoreCase(c.getEstado()) && Boolean.TRUE.equals(c.getActivo())).count();
+        long totalInactivos = totalClientes - totalActivos;
+
+        model.addAttribute("clientes", clientes);
+        model.addAttribute("totalClientes", totalClientes);
+        model.addAttribute("totalActivos", totalActivos);
+        model.addAttribute("totalInactivos", totalInactivos);
+
+        return "clientes/listado";
+    }
+
+    @PostMapping("/clientes/nuevo")
+    public String crearCliente(Cliente cliente) {
+        clienteService.guardar(cliente);
+        return "redirect:/clientes";
+    }
+
+    @PostMapping("/clientes/{id}/editar")
+    public String editarCliente(@PathVariable Long id, Cliente cliente) {
+        clienteService.actualizar(id, cliente);
+        return "redirect:/clientes";
+    }
+
+    @PostMapping("/clientes/{id}/cambiar-estado")
+    public String cambiarEstadoCliente(@PathVariable Long id, @RequestParam String nuevoEstado) {
+        clienteService.cambiarEstado(id, nuevoEstado);
+        return "redirect:/clientes";
+    }
+
     @GetMapping("/pedidos/nuevo")
     public String nuevoPedido(Model model) {
         model.addAttribute("clientes", clienteService.listarActivos());

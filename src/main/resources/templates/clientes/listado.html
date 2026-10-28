@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directorio de clientes - StockPedidos</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+</head>
+<body>
+
+<div th:replace="~{fragments/navegacion :: barra('clientes')}"></div>
+
+<main class="contenedor-principal">
+    <div class="miga-pan">Directorio / Clientes</div>
+
+    <div class="cabecera-seccion">
+        <h1 class="titulo-pagina">Directorio de clientes</h1>
+        <button type="button" class="boton boton-primario" onclick="abrirModal('modal-nuevo-cliente')">
+            Nuevo Cliente
+        </button>
+    </div>
+
+    <div class="tarjetas-metricas">
+        <div class="tarjeta-metrica">
+            <span class="metrica-etiqueta">Clientes registrados</span>
+            <span class="metrica-valor" th:text="${totalClientes}">3</span>
+        </div>
+        <div class="tarjeta-metrica">
+            <span class="metrica-etiqueta">Clientes activos</span>
+            <span class="metrica-valor" style="color: #166534;" th:text="${totalActivos}">3</span>
+        </div>
+        <div class="tarjeta-metrica">
+            <span class="metrica-etiqueta">Inactivos o suspendidos</span>
+            <span class="metrica-valor alerta-baja" th:text="${totalInactivos}">0</span>
+        </div>
+    </div>
+
+    <div class="tabla-contenedor">
+        <table class="tabla-datos">
+            <thead>
+            <tr>
+                <th>ID</th>
+                <th>RUT</th>
+                <th>RAZÓN SOCIAL / NOMBRE</th>
+                <th>CORREO ELECTRÓNICO</th>
+                <th>TELÉFONO</th>
+                <th>ESTADO</th>
+                <th>ACCIONES</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="cliente : ${clientes}">
+                <td style="font-weight: 600;" th:text="'C-00' + ${cliente.id}">C-001</td>
+                <td th:text="${cliente.rut}">76.543.210-K</td>
+                <td style="font-weight: 600;" th:text="${cliente.nombre}">Comercial Los Aromos Ltda.</td>
+                <td th:text="${cliente.correo}">compras@losaromos.cl</td>
+                <td th:text="${cliente.telefono}">+56 9 1234 5678</td>
+                <td>
+                    <span th:if="${cliente.estado == 'ACTIVO'}" class="insignia insignia-completado">
+                        <span class="insignia-punto"></span>ACTIVO
+                    </span>
+                    <span th:if="${cliente.estado == 'INACTIVO'}" class="insignia insignia-cancelado">
+                        <span class="insignia-punto"></span>INACTIVO
+                    </span>
+                    <span th:if="${cliente.estado == 'SUSPENDIDO'}" class="insignia insignia-pendiente">
+                        <span class="insignia-punto"></span>SUSPENDIDO
+                    </span>
+                </td>
+                <td>
+                    <div class="acciones-celda">
+                        <button type="button"
+                                class="boton-enlace"
+                                th:data-id="${cliente.id}"
+                                th:data-rut="${cliente.rut}"
+                                th:data-nombre="${cliente.nombre}"
+                                th:data-correo="${cliente.correo}"
+                                th:data-telefono="${cliente.telefono}"
+                                th:data-estado="${cliente.estado}"
+                                onclick="prepararEdicionCliente(this)">
+                            Editar
+                        </button>
+                        <a th:href="@{/pedidos/historial(rut=${cliente.rut})}" class="boton-enlace">
+                            Historial
+                        </a>
+                        <form th:action="@{'/clientes/' + ${cliente.id} + '/cambiar-estado'}" method="post" style="display: inline;">
+                            <input type="hidden" name="nuevoEstado" th:value="${cliente.estado == 'ACTIVO'} ? 'INACTIVO' : 'ACTIVO'">
+                            <button type="submit" class="boton-enlace"
+                                    th:style="${cliente.estado == 'ACTIVO'} ? 'color: #dc2626;' : 'color: #16a34a;'"
+                                    th:text="${cliente.estado == 'ACTIVO'} ? 'Desactivar' : 'Activar'">
+                                Desactivar
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(clientes)}">
+                <td colspan="7" style="text-align: center; color: var(--color-texto-secundario); padding: 2rem;">
+                    No hay clientes registrados en el sistema.
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<div id="modal-nuevo-cliente" class="modal-fondo" style="display: none;">
+    <div class="modal-caja">
+        <h2 class="titulo-modal">Registrar Nuevo Cliente</h2>
+        <form th:action="@{/clientes/nuevo}" method="post">
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">RUT</label>
+                <input type="text" name="rut" required class="control-formulario" placeholder="Ej: 76.543.210-K">
+            </div>
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Razón Social o Nombre</label>
+                <input type="text" name="nombre" required class="control-formulario" placeholder="Nombre de la empresa o cliente">
+            </div>
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Correo electrónico</label>
+                <input type="email" name="correo" required class="control-formulario" placeholder="contacto@empresa.cl">
+            </div>
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Teléfono de contacto</label>
+                <input type="text" name="telefono" class="control-formulario" placeholder="+56 9 1234 5678">
+            </div>
+            <div class="grupo-botones-modal" style="margin-top: 1.5rem;">
+                <button type="button" class="boton boton-secundario" onclick="cerrarModal('modal-nuevo-cliente')">Cancelar</button>
+                <button type="submit" class="boton boton-primario">Guardar Cliente</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="modal-editar-cliente" class="modal-fondo" style="display: none;">
+    <div class="modal-caja">
+        <h2 class="titulo-modal">Editar Cliente</h2>
+        <form id="form-editar-cliente" method="post">
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">RUT</label>
+                <input type="text" id="editar-cliente-rut" name="rut" required class="control-formulario">
+            </div>
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Razón Social o Nombre</label>
+                <input type="text" id="editar-cliente-nombre" name="nombre" required class="control-formulario">
+            </div>
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Correo electrónico</label>
+                <input type="email" id="editar-cliente-correo" name="correo" required class="control-formulario">
+            </div>
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Teléfono de contacto</label>
+                <input type="text" id="editar-cliente-telefono" name="telefono" class="control-formulario">
+            </div>
+            <div class="campo-formulario">
+                <label class="etiqueta-formulario">Estado</label>
+                <select id="editar-cliente-estado" name="estado" class="control-formulario">
+                    <option value="ACTIVO">ACTIVO</option>
+                    <option value="INACTIVO">INACTIVO</option>
+                    <option value="SUSPENDIDO">SUSPENDIDO</option>
+                </select>
+            </div>
+            <div class="grupo-botones-modal" style="margin-top: 1.5rem;">
+                <button type="button" class="boton boton-secundario" onclick="cerrarModal('modal-editar-cliente')">Cancelar</button>
+                <button type="submit" class="boton boton-primario">Actualizar Cliente</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function abrirModal(id) {
+        document.getElementById(id).style.display = 'flex';
+    }
+
+    function cerrarModal(id) {
+        document.getElementById(id).style.display = 'none';
+    }
+
+    function prepararEdicionCliente(boton) {
+        const id = boton.getAttribute('data-id');
+        document.getElementById('form-editar-cliente').action = '/clientes/' + id + '/editar';
+        document.getElementById('editar-cliente-rut').value = boton.getAttribute('data-rut');
+        document.getElementById('editar-cliente-nombre').value = boton.getAttribute('data-nombre');
+        document.getElementById('editar-cliente-correo').value = boton.getAttribute('data-correo');
+        document.getElementById('editar-cliente-telefono').value = boton.getAttribute('data-telefono') || '';
+        document.getElementById('editar-cliente-estado').value = boton.getAttribute('data-estado');
+        abrirModal('modal-editar-cliente');
+    }
+</script>
+
+</body>
+</html>

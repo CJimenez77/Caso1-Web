@@ -10,6 +10,10 @@
                th:class="${paginaActiva == 'productos'} ? 'nav-enlace activo' : 'nav-enlace'">
                 Productos
             </a>
+            <a th:href="@{/clientes}"
+               th:class="${paginaActiva == 'clientes'} ? 'nav-enlace activo' : 'nav-enlace'">
+                Clientes
+            </a>
             <a th:href="@{/pedidos/nuevo}"
                th:class="${paginaActiva == 'nuevo-pedido'} ? 'nav-enlace activo' : 'nav-enlace'">
                 Nuevo pedido

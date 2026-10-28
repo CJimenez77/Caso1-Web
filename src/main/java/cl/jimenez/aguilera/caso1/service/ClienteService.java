@@ -53,6 +53,12 @@ public class ClienteService {
     }
 
     public Cliente guardar(Cliente cliente) {
+        if (cliente.getEstado() == null) {
+            cliente.setEstado("ACTIVO");
+        }
+        if (cliente.getActivo() == null) {
+            cliente.setActivo(true);
+        }
         return clienteRepository.save(cliente);
     }
 
@@ -64,11 +70,28 @@ public class ClienteService {
             clienteExistente.setTelefono(datosActualizados.getTelefono());
             if (datosActualizados.getEstado() != null) {
                 clienteExistente.setEstado(datosActualizados.getEstado());
+                if ("INACTIVO".equalsIgnoreCase(datosActualizados.getEstado())) {
+                    clienteExistente.setActivo(false);
+                } else if ("ACTIVO".equalsIgnoreCase(datosActualizados.getEstado())) {
+                    clienteExistente.setActivo(true);
+                }
             }
             if (datosActualizados.getActivo() != null) {
                 clienteExistente.setActivo(datosActualizados.getActivo());
             }
             return clienteRepository.save(clienteExistente);
+        });
+    }
+
+    public Optional<Cliente> cambiarEstado(Long id, String nuevoEstado) {
+        return clienteRepository.findById(id).map(cliente -> {
+            cliente.setEstado(nuevoEstado);
+            if ("INACTIVO".equalsIgnoreCase(nuevoEstado)) {
+                cliente.setActivo(false);
+            } else if ("ACTIVO".equalsIgnoreCase(nuevoEstado)) {
+                cliente.setActivo(true);
+            }
+            return clienteRepository.save(cliente);
         });
     }
 
