@@ -3,6 +3,7 @@ package cl.jimenez.aguilera.caso1;
 import cl.jimenez.aguilera.caso1.model.Producto;
 import cl.jimenez.aguilera.caso1.repository.ProductoRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,6 +35,7 @@ class ProductoControladorTest {
     }
 
     @Test
+    @DisplayName("GET /api/productos -> Debe listar productos activos")
     void debeListarProductosActivos() throws Exception {
         mockMvc.perform(get("/api/productos"))
                 .andExpect(status().isOk())
@@ -42,6 +44,7 @@ class ProductoControladorTest {
     }
 
     @Test
+    @DisplayName("GET /api/productos/1 -> Debe obtener producto por ID")
     void debeObtenerProductoPorId() throws Exception {
         mockMvc.perform(get("/api/productos/1"))
                 .andExpect(status().isOk())
@@ -50,6 +53,7 @@ class ProductoControladorTest {
     }
 
     @Test
+    @DisplayName("GET /api/productos/bajo-stock -> Debe listar productos bajo stock mínimo")
     void debeListarProductosBajoStockMinimo() throws Exception {
         mockMvc.perform(get("/api/productos/bajo-stock"))
                 .andExpect(status().isOk())
@@ -57,6 +61,7 @@ class ProductoControladorTest {
     }
 
     @Test
+    @DisplayName("PATCH /api/productos/1/stock -> Debe ajustar stock de producto")
     void debeAjustarStockDeProducto() throws Exception {
         String cuerpoJson = """
                 {

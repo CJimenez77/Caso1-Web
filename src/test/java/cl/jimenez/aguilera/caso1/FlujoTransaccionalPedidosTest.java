@@ -7,6 +7,7 @@ import cl.jimenez.aguilera.caso1.repository.PedidoRepository;
 import cl.jimenez.aguilera.caso1.repository.ProductoRepository;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,6 +44,7 @@ class FlujoTransaccionalPedidosTest {
     }
 
     @Test
+    @DisplayName("POST /api/pedidos -> Debe crear pedido y descontar stock cuando hay disponibilidad")
     void debeCrearPedidoYDescontarStockCuandoHayDisponibilidad() throws Exception {
         Producto producto = productoRepository.findById(1L).orElseThrow();
         int stockInicial = producto.getStockDisponible();
@@ -82,6 +84,7 @@ class FlujoTransaccionalPedidosTest {
     }
 
     @Test
+    @DisplayName("POST /api/pedidos -> Debe rechazar pedido y revertir stock cuando no hay disponibilidad (409 Conflict)")
     void debeRechazarPedidoYRevertirStockCuandoNoHayDisponibilidad() throws Exception {
         Producto producto = productoRepository.findById(6L).orElseThrow();
         int stockInicial = producto.getStockDisponible();
@@ -114,6 +117,7 @@ class FlujoTransaccionalPedidosTest {
     }
 
     @Test
+    @DisplayName("PATCH /api/pedidos/{id}/estado -> Debe restaurar stock al cancelar pedido")
     void debeRestaurarStockAlCancelarPedido() throws Exception {
         Producto producto = productoRepository.findById(3L).orElseThrow();
         int stockInicial = producto.getStockDisponible();
@@ -160,6 +164,7 @@ class FlujoTransaccionalPedidosTest {
     }
 
     @Test
+    @DisplayName("GET /api/clientes/{id}/pedidos -> Debe listar pedidos por cliente")
     void debeListarPedidosPorCliente() throws Exception {
         mockMvc.perform(get("/api/clientes/1/pedidos"))
                 .andExpect(status().isOk())

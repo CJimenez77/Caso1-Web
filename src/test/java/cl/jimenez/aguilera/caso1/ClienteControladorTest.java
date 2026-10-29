@@ -3,6 +3,7 @@ package cl.jimenez.aguilera.caso1;
 import cl.jimenez.aguilera.caso1.model.Cliente;
 import cl.jimenez.aguilera.caso1.repository.ClienteRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -34,6 +35,7 @@ class ClienteControladorTest {
     }
 
     @Test
+    @DisplayName("GET /api/clientes -> Debe listar clientes")
     void debeListarClientes() throws Exception {
         mockMvc.perform(get("/api/clientes"))
                 .andExpect(status().isOk())
@@ -42,6 +44,7 @@ class ClienteControladorTest {
     }
 
     @Test
+    @DisplayName("GET /api/clientes/1 -> Debe obtener cliente por ID")
     void debeObtenerClientePorId() throws Exception {
         mockMvc.perform(get("/api/clientes/1"))
                 .andExpect(status().isOk())
@@ -50,6 +53,7 @@ class ClienteControladorTest {
     }
 
     @Test
+    @DisplayName("PATCH /api/clientes/1/estado -> Debe actualizar estado del cliente")
     void debeActualizarEstadoCliente() throws Exception {
         String cuerpoJson = """
                 {
